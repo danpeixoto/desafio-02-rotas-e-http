@@ -20,3 +20,9 @@ A API deve cumprir os seguintes requisitos funcionais:
   * Melhor sequência de refeições dentro da dieta.
 * O usuário só pode visualizar, editar e apagar as refeições que ele criou.
 
+
+
+```
+npm run knex -- migrate:make <migration>
+npm run knex -- migrate:latest
+```

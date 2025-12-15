@@ -40,9 +40,8 @@ export async function userRoutes(app: FastifyInstance) {
         id: crypto.randomUUID(),
       })
       .returning('*')
-      .first()
 
-    response.cookie('userId', newUser!.id, { maxAge: 60 * 60 * 24 * 7 })
+    response.cookie('userId', newUser[0]!.id, { maxAge: 60 * 60 * 24 * 7 })
 
     return response.status(201).send()
   })
