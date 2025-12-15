@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import z from 'zod'
 import { knex } from '../database.js'
 import crypto from 'node:crypto'
+import { checkUserAuth } from '../middlewares/checkUserAuth.js'
 
 function bestDietStreak(meals: Array<{ inside_diet: boolean }>) {
   let max = 0
@@ -62,34 +63,40 @@ export function userRoutes(app: FastifyInstance) {
     return response.status(200).send()
   })
 
-  app.get('/:id/summary', async (request, response) => {
-    const getUserSummaryParamsSchema = z.object({
-      id: z.string().uuid(),
-    })
-    const { id } = getUserSummaryParamsSchema.parse(request.params)
+  app.get(
+    '/:id/summary',
+    { preHandler: [checkUserAuth] },
+    async (request, response) => {
+      const getUserSummaryParamsSchema = z.object({
+        id: z.uuid(),
+      })
+      const { id } = getUserSummaryParamsSchema.parse(request.params)
 
-    if (request.cookies.userId !== id) {
-      return response.status(403).send({ message: 'Forbidden.' })
-    }
+      if (request.cookies.userId !== id) {
+        return response.status(403).send({ message: 'Forbidden.' })
+      }
 
-    const summary = await knex('meals')
-      .where({ user_id: id })
-      .select(
-        knex.raw('COUNT(*) FILTER (WHERE is_on_diet = true) AS on_diet_count'),
-        knex.raw(
-          'COUNT(*) FILTER (WHERE is_on_diet = false) AS off_diet_count',
-        ),
-        knex.raw('COUNT(*) AS total_meals'),
-      )
-      .first()
+      const summary = await knex('meals')
+        .where({ user_id: id })
+        .select(
+          knex.raw(
+            'COUNT(*) FILTER (WHERE is_on_diet = true) AS on_diet_count',
+          ),
+          knex.raw(
+            'COUNT(*) FILTER (WHERE is_on_diet = false) AS off_diet_count',
+          ),
+          knex.raw('COUNT(*) AS total_meals'),
+        )
+        .first()
 
-    const allMeals = await knex('meals')
-      .where({ user_id: id })
-      .orderBy('created_at', 'asc')
-      .select('inside_diet', 'created_at')
+      const allMeals = await knex('meals')
+        .where({ user_id: id })
+        .orderBy('created_at', 'asc')
+        .select('inside_diet', 'created_at')
 
-    const streak = bestDietStreak(allMeals)
+      const streak = bestDietStreak(allMeals)
 
-    return response.status(200).send({ summary: { ...summary, streak } })
-  })
+      return response.status(200).send({ summary: { ...summary, streak } })
+    },
+  )
 }
