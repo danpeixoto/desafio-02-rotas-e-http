@@ -5,11 +5,11 @@ import crypto from 'node:crypto'
 import { checkUserAuth } from '../middlewares/checkUserAuth.js'
 import { checkIsSameUserId } from '../middlewares/checkIsSameUserId.js'
 
-function bestDietStreak(meals: Array<{ inside_diet: boolean }>) {
+function bestDietStreak(meals: Array<{ is_on_diet: boolean }>) {
   let max = 0
   let cur = 0
   for (const meal of meals) {
-    if (meal.inside_diet) {
+    if (meal.is_on_diet) {
       cur += 1
       if (cur > max) max = cur
     } else {
@@ -88,7 +88,7 @@ export async function userRoutes(app: FastifyInstance) {
       const allMeals = await knex('meals')
         .where({ user_id: id })
         .orderBy('created_at', 'asc')
-        .select('inside_diet', 'created_at')
+        .select('is_on_diet', 'created_at')
 
       const streak = bestDietStreak(allMeals)
 
