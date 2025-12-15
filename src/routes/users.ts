@@ -3,6 +3,7 @@ import z from 'zod'
 import { knex } from '../database.js'
 import crypto from 'node:crypto'
 import { checkUserAuth } from '../middlewares/checkUserAuth.js'
+import { checkIsSameUserId } from '../middlewares/checkIsSameUserId.js'
 
 function bestDietStreak(meals: Array<{ inside_diet: boolean }>) {
   let max = 0
@@ -18,7 +19,7 @@ function bestDietStreak(meals: Array<{ inside_diet: boolean }>) {
   return max
 }
 
-export function userRoutes(app: FastifyInstance) {
+export async function userRoutes(app: FastifyInstance) {
   app.post('/', async (request, response) => {
     const createUserBodySchema = z.object({
       name: z.string(),
@@ -65,16 +66,12 @@ export function userRoutes(app: FastifyInstance) {
 
   app.get(
     '/:id/summary',
-    { preHandler: [checkUserAuth] },
+    { preHandler: [checkUserAuth, checkIsSameUserId] },
     async (request, response) => {
       const getUserSummaryParamsSchema = z.object({
         id: z.uuid(),
       })
       const { id } = getUserSummaryParamsSchema.parse(request.params)
-
-      if (request.cookies.userId !== id) {
-        return response.status(403).send({ message: 'Forbidden.' })
-      }
 
       const summary = await knex('meals')
         .where({ user_id: id })
